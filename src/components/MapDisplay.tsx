@@ -35,13 +35,31 @@ export function MapDisplay() {
       return;
     }
 
+    setIsLocating(true);
+
+    // Fallback function using IP-based geolocation API
+    const fetchIpLocation = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        if (data.latitude && data.longitude) {
+          setUserLocation([data.latitude, data.longitude]);
+          setGeoError("Using IP-based location (Browser GPS blocked)");
+        } else {
+          setGeoError("Could not determine location");
+        }
+      } catch (err) {
+        setGeoError("Location services unavailable");
+      } finally {
+        setIsLocating(false);
+      }
+    };
+
     if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported by your browser");
-      setIsLocating(false);
+      fetchIpLocation();
       return;
     }
 
-    setIsLocating(true);
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setUserLocation([position.coords.latitude, position.coords.longitude]);
@@ -50,12 +68,12 @@ export function MapDisplay() {
       },
       (error) => {
         console.error("Geolocation watch error:", error);
-        setGeoError(error.message);
-        setIsLocating(false);
+        // If it fails (e.g., due to secure origin iframe restrictions), fallback to IP
+        fetchIpLocation();
       },
       { 
         enableHighAccuracy: true, 
-        maximumAge: 0, // Force real-time updates
+        maximumAge: 0,
         timeout: 5000 
       }
     );
