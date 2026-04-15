@@ -164,6 +164,12 @@ export function MapDisplay() {
             {trackingMode === 'live' && isLocating ? 'Locating...' : 'Live Location'}
           </button>
         </div>
+
+        {trackingMode === 'live' && locationAccuracy && (
+          <div className="text-[10px] font-mono bg-[#0a0a0c]/90 text-[#00f2ff] px-3 py-1 rounded-full border border-[#00f2ff]/30 shadow-lg backdrop-blur-sm">
+            Accuracy: ~{Math.round(locationAccuracy)} meters
+          </div>
+        )}
       </div>
 
       <MapContainer 
