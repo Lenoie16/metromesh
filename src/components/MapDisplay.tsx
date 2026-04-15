@@ -104,10 +104,29 @@ export function MapDisplay() {
     <div className="w-full h-full relative z-0">
       {/* Location Status Overlay */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
-        {trackingMode === 'live' && geoError && !userLocation && (
-          <div className="bg-[#ff3c3c]/90 text-white px-4 py-2 rounded text-xs font-mono shadow-lg flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            Location Error: {geoError}
+        {trackingMode === 'live' && (
+          <div className="bg-[#ffaa00]/90 text-black px-4 py-2 rounded text-xs font-mono shadow-lg flex flex-col items-center gap-2 w-full max-w-sm">
+            {geoError ? (
+              <div className="flex items-center gap-2 font-bold text-center">
+                <Activity className="w-4 h-4 shrink-0" />
+                {geoError}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 font-bold text-center">
+                <Navigation className="w-4 h-4 shrink-0" />
+                Live Tracking Active
+              </div>
+            )}
+            
+            <button 
+              onClick={() => window.open(window.location.href, '_blank')}
+              className="bg-black text-white px-3 py-2 rounded hover:bg-gray-800 transition-colors w-full text-center font-bold shadow-[0_0_10px_rgba(0,0,0,0.5)] border border-white/20"
+            >
+              🚀 Open in New Tab for Precise GPS
+            </button>
+            <div className="text-[9px] opacity-70 text-center leading-tight">
+              (In-app preview blocks precise GPS. Open in a new tab for street-level accuracy during your presentation.)
+            </div>
           </div>
         )}
         
