@@ -85,7 +85,7 @@ export function MapDisplay() {
   return (
     <div className="w-full h-full relative z-0">
       {/* Location Status Overlay */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] flex flex-col items-center gap-2">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] flex flex-col items-center gap-2 pointer-events-auto">
         {trackingMode === 'live' && geoError && !userLocation && (
           <div className="bg-[#ff3c3c]/90 text-white px-4 py-2 rounded text-xs font-mono shadow-lg flex items-center gap-2">
             <Activity className="w-4 h-4" />
