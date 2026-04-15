@@ -3,9 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+    <meta name="description" content="MetroMesh - Offline Crowd Intelligence System" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https: blob:;" />
+    <title>MetroMesh | Crowd Intelligence</title>
+    
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-METROMESH"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-METROMESH');
+    </script>
   </head>
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

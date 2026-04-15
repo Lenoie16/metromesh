@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useStore } from '../store/useStore';
-import { Users, Clock, AlertTriangle, Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Users, Clock, AlertTriangle, Activity, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { generateCrowdInsight } from '../lib/gemini';
 
 export function StatusCard() {
-  const { currentDensity, predictedDensity, certainty, waitTime, lastUpdated, logs } = useStore();
+  const { zone, currentDensity, predictedDensity, certainty, waitTime, lastUpdated, logs, peerCount } = useStore();
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const isOffline = currentDensity === null;
 
@@ -25,6 +29,14 @@ export function StatusCard() {
   // Derive trend from the latest prediction log
   const latestPrediction = logs.find(l => l.type === 'prediction');
   const trend = latestPrediction?.data?.trend || 'stable';
+
+  const handleGenerateInsight = async () => {
+    if (isGenerating || !zone || predictedDensity === null) return;
+    setIsGenerating(true);
+    const insight = await generateCrowdInsight(zone, predictedDensity, peerCount, trend);
+    setAiInsight(insight);
+    setIsGenerating(false);
+  };
 
   if (isOffline) {
     return (
@@ -103,27 +115,45 @@ export function StatusCard() {
         </div>
       </div>
 
-      {/* Card 4: Alt Suggestion */}
-      <div className="bg-[rgba(20,20,25,0.7)] border border-white/10 p-4 rounded-lg backdrop-blur-md h-full flex flex-col justify-center">
-        <div className="text-[10px] text-[#888] uppercase tracking-[1px] mb-2">Alt Suggestion</div>
-        {predictedDensity! > 0.7 ? (
-          <>
-            <div className="text-lg font-bold font-sans text-white mt-2">
-              North Stairwell
+      {/* Card 4: Gemini AI Insights */}
+      <div className="bg-[rgba(20,20,25,0.7)] border border-[#4285F4]/30 p-4 rounded-lg backdrop-blur-md h-full flex flex-col relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#4285F4] via-[#EA4335] to-[#FBBC05]" />
+        <div className="flex justify-between items-start mb-2">
+          <div className="text-[10px] text-[#888] uppercase tracking-[1px] flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-[#4285F4]" />
+            Google Gemini Insight
+          </div>
+          {!aiInsight && (
+            <button 
+              onClick={handleGenerateInsight}
+              disabled={isGenerating}
+              className="text-[10px] bg-[#4285F4]/20 text-[#4285F4] hover:bg-[#4285F4]/40 px-2 py-1 rounded transition-colors disabled:opacity-50"
+            >
+              {isGenerating ? 'Analyzing...' : 'Generate'}
+            </button>
+          )}
+        </div>
+        
+        <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
+          {aiInsight ? (
+            <div className="text-xs text-white leading-relaxed">
+              {aiInsight}
             </div>
-            <div className="text-xs mt-1 text-[#00ff95]">
-              35% Less Congestion
+          ) : (
+            <div className="text-xs text-[#555] h-full flex items-center justify-center text-center italic">
+              Click generate to analyze current crowd metrics using Google Gemini AI.
             </div>
-          </>
-        ) : (
-          <>
-            <div className="text-lg font-bold font-sans text-[#555] mt-2">
-              None Needed
-            </div>
-            <div className="text-xs mt-1 text-[#888]">
-              Current route is optimal
-            </div>
-          </>
+          )}
+        </div>
+        
+        {aiInsight && (
+          <button 
+            onClick={handleGenerateInsight}
+            disabled={isGenerating}
+            className="text-[10px] text-[#888] hover:text-white mt-2 text-left transition-colors"
+          >
+            {isGenerating ? 'Refreshing...' : '↻ Refresh Insight'}
+          </button>
         )}
       </div>
     </section>

@@ -15,7 +15,7 @@ function MapUpdater({ center, trigger }: { center: [number, number], trigger: nu
   const map = useMap();
   useEffect(() => {
     map.flyTo(center, map.getZoom(), { animate: true, duration: 0.8 });
-  }, [center[0], center[1], trigger, map]);
+  }, [trigger, map]); // Removed center from dependencies to prevent jitter on GPS updates
   return null;
 }
 
@@ -34,6 +34,7 @@ export function MapDisplay() {
       setLocationAccuracy(null);
       setGeoError(null);
       setIsLocating(false);
+      setCenterTrigger(t => t + 1); // Center back to demo location
       return;
     }
 
@@ -45,7 +46,10 @@ export function MapDisplay() {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         if (data.latitude && data.longitude) {
-          setUserLocation([data.latitude, data.longitude]);
+          setUserLocation(prev => {
+            if (!prev) setCenterTrigger(t => t + 1); // Trigger center on first lock
+            return [data.latitude, data.longitude];
+          });
           setLocationAccuracy(5000); // IP location is very imprecise, estimate 5km radius
           setGeoError("Using IP-based location (Browser GPS blocked)");
         } else {
@@ -65,7 +69,10 @@ export function MapDisplay() {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setUserLocation([position.coords.latitude, position.coords.longitude]);
+        setUserLocation(prev => {
+          if (!prev) setCenterTrigger(t => t + 1); // Trigger center on first lock
+          return [position.coords.latitude, position.coords.longitude];
+        });
         setLocationAccuracy(position.coords.accuracy);
         setGeoError(null);
         setIsLocating(false);
@@ -178,10 +185,10 @@ export function MapDisplay() {
         zoomControl={true}
         className="w-full h-full bg-[#0a0a0c]"
       >
-        {/* Standard Google Maps Tiles - No CSS Invert Filter for a "Proper Map" look */}
+        {/* CartoDB Dark Matter Tiles - Secure, Open Source, matches dark theme */}
         <TileLayer
-          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-          attribution="&copy; Google Maps"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
         <MapUpdater center={center} trigger={centerTrigger} />
         
