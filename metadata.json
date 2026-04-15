@@ -1,6 +1,8 @@
 {
   "name": "MetroMesh",
   "description": "A local-first, offline crowd intelligence system that simulates peer-to-peer communication between nearby devices to estimate and predict crowd density.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "geolocation"
+  ],
   "majorCapabilities": []
 }

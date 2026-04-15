@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '../store/useStore';
+import { Activity } from 'lucide-react';
 
-const ZONE_COORDS: Record<string, [number, number]> = {
+const FALLBACK_COORDS: Record<string, [number, number]> = {
   'Platform A': [51.5300, -0.1236],
   'Platform B': [51.5305, -0.1240],
   'North Concourse': [51.5310, -0.1230],
@@ -20,7 +21,31 @@ function MapUpdater({ center }: { center: [number, number] }) {
 
 export function MapDisplay() {
   const { zone, currentDensity, nodes } = useStore();
-  const center = ZONE_COORDS[zone] || ZONE_COORDS['Platform A'];
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation([position.coords.latitude, position.coords.longitude]);
+        setGeoError(null);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setGeoError(error.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  const center = userLocation || FALLBACK_COORDS[zone] || FALLBACK_COORDS['Platform A'];
 
   const densityColor = currentDensity === null 
     ? '#888' 
@@ -28,6 +53,12 @@ export function MapDisplay() {
 
   return (
     <div className="w-full h-full relative z-0">
+      {geoError && !userLocation && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] bg-[#ff3c3c]/20 border border-[#ff3c3c] text-[#ff3c3c] px-4 py-2 rounded text-xs font-mono backdrop-blur-md flex items-center gap-2">
+          <Activity className="w-4 h-4" />
+          Using fallback location ({geoError})
+        </div>
+      )}
       <MapContainer 
         center={center} 
         zoom={18} 
@@ -35,12 +66,13 @@ export function MapDisplay() {
         className="w-full h-full bg-[#0a0a0c]"
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          attribution="&copy; Google Maps"
+          className="dark-map-tiles"
         />
         <MapUpdater center={center} />
         
-        {/* Main Zone Marker */}
+        {/* Main Zone / User Marker */}
         <CircleMarker 
           center={center} 
           radius={30} 
@@ -52,7 +84,7 @@ export function MapDisplay() {
           }}
         >
           <Popup className="font-mono text-xs">
-            <strong>{zone}</strong><br/>
+            <strong>{userLocation ? 'Your Live Location' : zone}</strong><br/>
             Density: {currentDensity !== null ? `${Math.round(currentDensity * 100)}%` : 'Unknown'}
           </Popup>
         </CircleMarker>
@@ -60,8 +92,9 @@ export function MapDisplay() {
         {/* Peer Nodes */}
         {nodes.map(node => {
           // Calculate a slight offset based on x/y from radar to simulate geographic spread
-          const latOffset = (node.y / 100000);
-          const lngOffset = (node.x / 100000);
+          // Radar x/y are roughly -80 to 80. Let's map 80 to ~20 meters (0.0002 degrees)
+          const latOffset = (node.y / 400000);
+          const lngOffset = (node.x / 400000);
           return (
             <CircleMarker
               key={node.id}
@@ -74,7 +107,7 @@ export function MapDisplay() {
       </MapContainer>
       
       {/* Overlay gradient to blend map edges into the dark theme */}
-      <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(10,10,12,1)]" />
+      <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_100px_rgba(10,10,12,1)] z-[400]" />
     </div>
   );
 }
