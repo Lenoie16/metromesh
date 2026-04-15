@@ -11,15 +11,13 @@ export function simulateHandshake() {
   
   const nodeId = Math.random().toString(36).substring(7);
   
-  // Add node to radar
-  store.addNode({ id: nodeId, x, y });
-
-  // Generate payload
-  // If we have a current density, simulate something close to it, otherwise random
   const baseDensity = store.currentDensity ?? (0.2 + Math.random() * 0.6);
   const variance = (Math.random() - 0.5) * 0.2;
   const observed_density = Math.max(0, Math.min(1, baseDensity + variance));
   
+  // Add node to radar
+  store.addNode({ id: nodeId, x, y, density: observed_density });
+
   const trends: Trend[] = ['increasing', 'decreasing', 'stable'];
   const trend = trends[Math.floor(Math.random() * trends.length)];
 

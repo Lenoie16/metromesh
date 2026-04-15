@@ -20,6 +20,7 @@ export interface RadarNode {
   x: number;
   y: number;
   timestamp: number;
+  density?: number;
 }
 
 export interface AlertConfig {

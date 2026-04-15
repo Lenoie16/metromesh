@@ -86,13 +86,20 @@ export function Radar() {
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
-              className="absolute w-2 h-2 bg-[#00f2ff] rounded-full shadow-[0_0_15px_#00f2ff]"
+              className="absolute flex items-center gap-1.5"
               style={{
                 left: `calc(50% + ${node.x}px)`,
                 top: `calc(50% + ${node.y}px)`,
                 transform: 'translate(-50%, -50%)'
               }}
-            />
+            >
+              <div className="w-2 h-2 bg-[#00f2ff] rounded-full shadow-[0_0_15px_#00f2ff]" />
+              {node.density !== undefined && (
+                <div className="text-[9px] font-mono text-[#00f2ff] bg-[#00f2ff]/10 px-1 rounded border border-[#00f2ff]/20">
+                  {Math.round(node.density * 100)}%
+                </div>
+              )}
+            </motion.div>
           </div>
         ))}
       </AnimatePresence>

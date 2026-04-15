@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '../store/useStore';
 import { Activity, Navigation } from 'lucide-react';
@@ -21,18 +21,27 @@ function MapUpdater({ center, trigger }: { center: [number, number], trigger: nu
 
 export function MapDisplay() {
   const { zone, currentDensity, nodes } = useStore();
+  const [trackingMode, setTrackingMode] = useState<'demo' | 'live'>('demo');
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
   const [centerTrigger, setCenterTrigger] = useState(0);
 
   useEffect(() => {
+    if (trackingMode === 'demo') {
+      setUserLocation(null);
+      setGeoError(null);
+      setIsLocating(false);
+      return;
+    }
+
     if (!navigator.geolocation) {
       setGeoError("Geolocation is not supported by your browser");
       setIsLocating(false);
       return;
     }
 
+    setIsLocating(true);
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setUserLocation([position.coords.latitude, position.coords.longitude]);
@@ -52,17 +61,11 @@ export function MapDisplay() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [trackingMode]);
 
-  const handleLocateMe = () => {
-    if (userLocation) {
-      setCenterTrigger(t => t + 1);
-    } else {
-      setIsLocating(true);
-    }
-  };
-
-  const center = userLocation || FALLBACK_COORDS[zone] || FALLBACK_COORDS['Platform A'];
+  const center = trackingMode === 'live' && userLocation 
+    ? userLocation 
+    : (FALLBACK_COORDS[zone] || FALLBACK_COORDS['Platform A']);
 
   const getZoneDensity = (zName: string) => {
     if (zName === zone) return currentDensity;
@@ -83,20 +86,43 @@ export function MapDisplay() {
     <div className="w-full h-full relative z-0">
       {/* Location Status Overlay */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] flex flex-col items-center gap-2">
-        {geoError && !userLocation && (
+        {trackingMode === 'live' && geoError && !userLocation && (
           <div className="bg-[#ff3c3c]/90 text-white px-4 py-2 rounded text-xs font-mono shadow-lg flex items-center gap-2">
             <Activity className="w-4 h-4" />
-            Using fallback location ({geoError})
+            Location Error: {geoError}
           </div>
         )}
         
-        <button 
-          onClick={handleLocateMe}
-          className="bg-[#0a0a0c]/90 border border-white/20 text-white px-4 py-2 rounded-full text-xs font-mono shadow-lg flex items-center gap-2 hover:bg-[#1a1a1f] transition-colors"
-        >
-          <Navigation className={`w-4 h-4 ${isLocating ? 'animate-spin text-[#00f2ff]' : 'text-[#00f2ff]'}`} />
-          {isLocating ? 'Tracking...' : userLocation ? 'Live Tracking Active' : 'Locate Me'}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              setTrackingMode('demo');
+              setCenterTrigger(t => t + 1);
+            }}
+            className={`px-4 py-2 rounded-full text-xs font-mono shadow-lg flex items-center gap-2 transition-colors ${
+              trackingMode === 'demo' 
+                ? 'bg-[#00f2ff] text-black font-bold' 
+                : 'bg-[#0a0a0c]/90 border border-white/20 text-white hover:bg-[#1a1a1f]'
+            }`}
+          >
+            Demo Mode (London)
+          </button>
+          
+          <button 
+            onClick={() => {
+              setTrackingMode('live');
+              if (trackingMode === 'live' && userLocation) setCenterTrigger(t => t + 1);
+            }}
+            className={`px-4 py-2 rounded-full text-xs font-mono shadow-lg flex items-center gap-2 transition-colors ${
+              trackingMode === 'live' 
+                ? 'bg-[#00f2ff] text-black font-bold' 
+                : 'bg-[#0a0a0c]/90 border border-white/20 text-white hover:bg-[#1a1a1f]'
+            }`}
+          >
+            <Navigation className={`w-4 h-4 ${isLocating && trackingMode === 'live' ? 'animate-spin' : ''}`} />
+            {trackingMode === 'live' && isLocating ? 'Locating...' : 'Live Location'}
+          </button>
+        </div>
       </div>
 
       <MapContainer 
@@ -162,8 +188,21 @@ export function MapDisplay() {
               radius={4}
               pathOptions={{ color: '#00f2ff', fillColor: '#00f2ff', fillOpacity: 0.9, weight: 1 }}
             >
+              {node.density !== undefined && (
+                <Tooltip 
+                  permanent 
+                  direction="right" 
+                  offset={[5, 0]}
+                  className="bg-transparent border-none shadow-none p-0 m-0"
+                >
+                  <div className="text-[10px] font-mono text-[#00f2ff] bg-[#00f2ff]/10 px-1 rounded border border-[#00f2ff]/20 backdrop-blur-sm">
+                    {Math.round(node.density * 100)}%
+                  </div>
+                </Tooltip>
+              )}
               <Popup className="font-mono text-xs">
-                Peer Node: {node.id}
+                Peer Node: {node.id}<br/>
+                Observed Density: {node.density !== undefined ? `${Math.round(node.density * 100)}%` : 'Unknown'}
               </Popup>
             </CircleMarker>
           );
