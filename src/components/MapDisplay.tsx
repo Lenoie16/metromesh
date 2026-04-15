@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Circle, Popup, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '../store/useStore';
 import { Activity, Navigation } from 'lucide-react';
@@ -23,6 +23,7 @@ export function MapDisplay() {
   const { zone, currentDensity, nodes } = useStore();
   const [trackingMode, setTrackingMode] = useState<'demo' | 'live'>('demo');
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [centerTrigger, setCenterTrigger] = useState(0);
@@ -30,6 +31,7 @@ export function MapDisplay() {
   useEffect(() => {
     if (trackingMode === 'demo') {
       setUserLocation(null);
+      setLocationAccuracy(null);
       setGeoError(null);
       setIsLocating(false);
       return;
@@ -44,6 +46,7 @@ export function MapDisplay() {
         const data = await response.json();
         if (data.latitude && data.longitude) {
           setUserLocation([data.latitude, data.longitude]);
+          setLocationAccuracy(5000); // IP location is very imprecise, estimate 5km radius
           setGeoError("Using IP-based location (Browser GPS blocked)");
         } else {
           setGeoError("Could not determine location");
@@ -63,6 +66,7 @@ export function MapDisplay() {
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setUserLocation([position.coords.latitude, position.coords.longitude]);
+        setLocationAccuracy(position.coords.accuracy);
         setGeoError(null);
         setIsLocating(false);
       },
@@ -204,13 +208,25 @@ export function MapDisplay() {
 
         {/* User Location Marker */}
         {userLocation && (
-          <CircleMarker
-            center={userLocation}
-            radius={6}
-            pathOptions={{ color: '#ffffff', fillColor: '#00f2ff', fillOpacity: 1, weight: 2 }}
-          >
-            <Popup className="font-mono text-xs">Your Live Location</Popup>
-          </CircleMarker>
+          <>
+            {locationAccuracy && (
+              <Circle
+                center={userLocation}
+                radius={locationAccuracy}
+                pathOptions={{ color: '#0088ff', fillColor: '#0088ff', fillOpacity: 0.15, weight: 1 }}
+              />
+            )}
+            <CircleMarker
+              center={userLocation}
+              radius={7}
+              pathOptions={{ color: '#ffffff', fillColor: '#0088ff', fillOpacity: 1, weight: 2 }}
+            >
+              <Popup className="font-mono text-xs">
+                <strong>Your Live Location</strong><br/>
+                Accuracy: {locationAccuracy ? `~${Math.round(locationAccuracy)} meters` : 'Unknown'}
+              </Popup>
+            </CircleMarker>
+          </>
         )}
 
         {/* Peer Nodes */}
